@@ -39,10 +39,6 @@ Lessons in building an OS
   </a>
 </div>
 
-<!--
-The last comment block of each slide will be treated as slide notes. It will be visible and editable in Presenter Mode along with the slide. [Read more in the docs](https://sli.dev/guide/syntax.html#notes)
--->
-
 ---
 
 ### Who is August Radjoe?
@@ -115,4 +111,16 @@ We will focus on talking about kernels, OS increases attack surface, but is too 
 
 ### A normal boot process for a kernel
 
-&rarr; A kernel boots in ring 0, as a kernel
+&rarr; The BIOS is not loaded, it stored on a chip in the motherboard <br>
+&rarr; When you turn on a computer, it goes through 
+POST - power on self test. This generally checks for bootable devices<br>
+(floppy, CD, USB, HDD, etc.).  <br>
+&rarr; The BIOS then checks for bootable devies for a boot signature that indicates the device is bootable. <br>
+&rarr; If a bootable device is found, the BIOS transfers control to the boot loader, initiating the OS startup process. <br>
+&rarr; If no bootable device is found, an error message is displayed, prompting for system check or setup. <br>
+&rarr; Once the OS starts, the kernel initializes, setting up memory management, device drivers, <br>and system call interfaces for user space applications. <br>
+&rarr; The kernel then mounts the root filesystem and starts init (or an equivalent init system) <br>to begin the user space initialization process. <br>
+&rarr; Kernel modules can be loaded or unloaded dynamically, providing flexibility in managing hardware drivers <br>and system features. <br>
+&rarr; Interrupt Service Routines (ISRs) are part of the kernel, handling hardware interrupts and<br> ensuring responsive system behavior. <br>
+
+---
