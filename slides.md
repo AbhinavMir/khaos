@@ -4,17 +4,12 @@ background: https://source.unsplash.com/collection/94734566/1920x1080
 class: text-center
 highlighter: shiki
 lineNumbers: false
-info: |
-  ## Slidev Starter Template
-  Presentation slides for developers.
-
-  Learn more at [Sli.dev](https://sli.dev)
 drawings:
   persist: false
 defaults:
   foo: true
 transition: slide-left
-title: Welcome to Slidev
+title: Kernels, Chaos, and Confidentiality
 mdc: true
 monaco: true
 monacoTypesSource: local # or cdn or none
