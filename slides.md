@@ -149,15 +149,45 @@ POST - power on self test. This generally checks for bootable devices<br>
 ### How to switch between rings
 
 #### Defining a Syscall
+Eg. `read()`
+
+
+```
+SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
+{
+	struct fd f = fdget_pos(fd); // get file descriptor
+	ssize_t ret = -EBADF; // default error code
+
+	if (f.file) { // if file descriptor is valid
+		loff_t pos = file_pos_read(f.file); // get file position
+		ret = vfs_read(f.file, buf, count, &pos); // read from file - virtual file system, buffer means where to read to, count is how many bytes to read, pos is the position to read from
+		if (ret >= 0) // if read is successful
+			file_pos_write(f.file, pos); // update file position
+		fdput_pos(f); // release file descriptor
+	}
+	return ret; // return read status
+}
+```
+
+This function in turn opens up `vfs_read()`, which is a virtual file system read function that fails if we have no read persmission, are neither synch or asynch, if the buffer isn't a valid read area. 
+
+---
+
+### Dissecting the syscall()
+
+From `vfs_read`
 
 
 
 ---
 
+<center><img src="https://www.chromium.org/nativeclient/reference/anatomy-of-a-sys/NaClSyscallFlowchart2.png" width="400">
+Ref. Chromium.org</center>
 
+---
 
 ### References
 
 1. https://pwn.college/system-security/kernel-security
 2. https://lwn.net/Articles/604287/
-3. 
+3. https://lwn.net/Articles/604287/
