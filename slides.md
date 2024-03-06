@@ -26,15 +26,6 @@ Lessons in building an OS
   </span>
 </div>
 
-<div class="abs-br m-6 flex gap-2">
-  <button @click="$slidev.nav.openInEditor()" title="Open in Editor" class="text-xl slidev-icon-btn opacity-50 !border-none !hover:text-white">
-    <carbon:edit />
-  </button>
-  <a href="https://github.com/slidevjs/slidev" target="_blank" alt="GitHub" title="Open in GitHub"
-    class="text-xl slidev-icon-btn opacity-50 !border-none !hover:text-white">
-    <carbon-logo-github />
-  </a>
-</div>
 
 ---
 
@@ -60,6 +51,25 @@ Attack surfaces in kernels include:
    
 ---
 
+### We will focus on just 3 of them
+
+&rarr; Syscalls
+<br>&rarr; Network Protocols
+<br>  &rarr; Buffer Overflow
+
+---
+
+### Structure of the talk
+
+1. Basics of a kernel
+   1.  Kernels vs OS, Privilege separation, Types of kernels, XNU vs Linux, Boot process, Switching between rings, How a Syscall works, How does a device driver work, Why can buffer overflows happen
+2. How to write a kernel
+   1. Writing an image file, Installing GRUB,  Writing a bootloader configuration, Writing a kernel with basic files, threads, basic I/O shell, etc.
+3. 3 recent CVEs in the Linux kernel
+   1. sdv
+4. How do we fix this?
+---
+
 # Kernel vs. OS
 | Feature        | Kernel           | Operating System  |
 | -------------- |:----------------:| :----------------:|
@@ -83,20 +93,20 @@ We will focus on talking about kernels, OS increases attack surface, but is too 
 ---
 
 ### No one right solution
-1. **Linux/UNIX-like kernels**: User space (Ring 3) and kernel space (Ring 0) separation with capabilities for finer access control.
-2. **Windows NT-based kernels**: Operates in Ring 0 for the kernel, Ring 3 for user applications, with User Account Control (UAC) for privilege management.
-3. **macOS/XNU kernel**: Hybrid approach combining Mach (a microkernel) for message passing and BSD for Unix-like system calls.
-4. **Microkernels (e.g., Minix 3, L4)**: Minimal kernel functionality in privileged mode, with services running in user space.
-5. **Exokernels**: Direct application access to hardware with management of resources delegated to user-level libraries.
-
+1. **Linux/UNIX-like**: Separates user (Ring 3) and kernel (Ring 0) spaces, uses capabilities for access control.
+2. **Windows NT**: Kernel operates in Ring 0, user apps in Ring 3, uses UAC for privilege management.
+3. **macOS/XNU**: Combines Mach (microkernel) for messaging and BSD for system calls.
+4. **Microkernels (Minix 3, L4)**: Minimal privileged kernel, services in user space.
+5. **Exokernels**: Allows direct hardware access, resource management via user libraries.
 ---
 
 ### Types of Kernels
 
-&rarr; Monolithic - one giant monorepo that handles all OS-level tasks
-
-
-(analogy taken from pwn.college)
+1. **Monolithic Kernels**: Large, single address space. Examples: Linux, FreeBSD.
+2. **Microkernels**: Minimalist, essential functions only. Examples: Minix, L4.
+3. **Hybrid Kernels**: Combines monolithic and microkernel features. Examples: Windows NT, XNU.
+4. **Exokernels**: Direct hardware access, minimal abstractions. Examples: MIT's Exokernel.
+5. **NanoKernels**: Tiny, focuses on hardware abstraction. Used in embedded systems.
 
 ---
 
@@ -141,9 +151,13 @@ POST - power on self test. This generally checks for bootable devices<br>
 #### Defining a Syscall
 
 
-```
-void syscall_init(void)
-{
-	wrmsr(MSR_STAR, 0, (__USER32_CS << 16) | __KERNEL_CS); // write to model specific register
 
-}
+---
+
+
+
+### References
+
+1. https://pwn.college/system-security/kernel-security
+2. https://lwn.net/Articles/604287/
+3. 
