@@ -175,6 +175,8 @@ This function in turn opens up `vfs_read()`, which is a virtual file system read
 
 ### Dissecting the syscall()
 
+![](https://www.usenix.org/legacy/publications/library/proceedings/usenix01/full_papers/kroeger/kroeger_html/linux.caches.gif)
+
 From `vfs_read`
 
 
