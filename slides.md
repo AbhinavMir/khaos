@@ -1,5 +1,5 @@
 ---
-theme: geist
+theme: apple-basic
 background: https://source.unsplash.com/collection/94734566/1920x1080
 class: text-center
 highlighter: shiki
@@ -45,12 +45,26 @@ Lessons in building an OS
 &rarr; Open Source @ a few repos, eg. Zephyr
 --------------------
 
+### There are many attack surfaces on any kernel
+(Linux specific)
+Attack surfaces in kernels include:
+
+1. **System Calls**: Bugs can cause privilege escalations or leaks.
+2. **Device Drivers**: Vulnerabilities allow arbitrary code execution.
+3. **Network Protocols**: Flaws in TCP/IP or Wi-Fi stacks enable remote exploits.
+4. **File Systems**: Handling bugs lead to unauthorized access or crashes.
+5. **Kernel Modules**: Loaded code with vulnerabilities offers attack entry points.
+6. **Buffer Overflows**: Inadequate checks enable kernel memory overwrites.
+7. **Race Conditions**: Timing issues cause unintended operation sequences.
+8. **Integer Overflows**: Arithmetic mismanagement results in overflows or wrong calculations.
+   
+---
+
 # Kernel vs. OS
 | Feature        | Kernel           | Operating System  |
 | -------------- |:----------------:| :----------------:|
 | Definition     | Core component of OS that manages system resources and hardware. | Complete package that includes kernel, UI, and utilities for managing computer resources. |
 | Functionality  | Handles low-level tasks like memory management, task scheduling, and device control. | Provides a user interface and a set of applications along with the kernel functionalities. |
-| User Interaction| No direct interaction; works in the background. | Direct interaction through graphical or command-line interface. |
 | Examples       | Linux kernel, Windows NT kernel. | Linux (Ubuntu, Fedora), Windows, macOS. |
 
 We will focus on talking about kernels, OS increases attack surface, but is too wide in scope for this talk.
@@ -88,15 +102,15 @@ We will focus on talking about kernels, OS increases attack surface, but is too 
 
 ### XNU vs GNU Linux
 
-- **Mach microkernel (Ring 0)**: Handles essential system services like process management, memory management, and IPC, using message passing for communication between tasks.
-- **BSD component (Ring 0)**: Adds traditional UNIX services, including the file system, POSIX API, and network stack, leveraging direct calls to Mach for system operations.
-- **System Call Interface**: Bridges user applications and kernel services, translating POSIX calls into Mach messages for kernel-level execution.
-- **I/O Kit (User space)**: Implements a C++ based framework for developing device drivers outside of Ring 0, utilizing object-oriented principles for reusability and safety.
-- **Security Framework**: Integrates access control and authentication mechanisms, such as sandboxing and entitlements, to limit the privileges of processes and drivers.
-- **Virtual Memory System**: Manages memory through Mach's VM capabilities, offering features like memory protection and demand paging to ensure process isolation and efficient memory use.
-- **Interprocess Communication (IPC)**: Facilitates message passing between processes, enabling data exchange and synchronization across different security domains within the system.
-- **Scheduler**: Utilizes Mach's advanced scheduling algorithms to manage process execution, prioritizing tasks and managing CPU resources efficiently.
-- **Hardware Abstraction Layer**: Minimizes direct hardware interaction, allowing the kernel and drivers to operate independently of the underlying physical hardware specifics.
+Components of a microkernel-based system include:
+
+1. **Mach Microkernel (Ring 0)**: Manages core services like process, memory, and IPC with message passing.
+2. **BSD Component (Ring 0)**: Provides UNIX services, using Mach for file system, POSIX API, and networking.
+3. **System Call Interface**: Connects user apps to kernel services, converting POSIX calls to Mach messages.
+4. **I/O Kit (User Space)**: A C++ framework for device drivers, using object-oriented principles for safety.
+5. **Virtual Memory System**: Uses Mach VM for memory management, featuring protection and demand paging.
+6. **Interprocess Communication (IPC)**: Enables message passing for data exchange and synchronization.
+7. **Scheduler**: Employs Mach's scheduling for task management and CPU resource allocation.
 
 ---
 
@@ -121,3 +135,15 @@ POST - power on self test. This generally checks for bootable devices<br>
 &rarr; Interrupt Service Routines (ISRs) are part of the kernel, handling hardware interrupts and<br> ensuring responsive system behavior. <br>
 
 ---
+
+### How to switch between rings
+
+#### Defining a Syscall
+
+
+```
+void syscall_init(void)
+{
+	wrmsr(MSR_STAR, 0, (__USER32_CS << 16) | __KERNEL_CS); // write to model specific register
+
+}
