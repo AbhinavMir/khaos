@@ -93,6 +93,8 @@ We will focus on talking about kernels, OS increases attack surface, but is too 
 &rarr; Linux uses ring 0 (kernel mode) and ring 3 (userspace) - which raises the questions what about ring 1 and 2 <br>
 &rarr; Well, they're not used as often in modern OSes but there are some that do use all 4 (eg. OS/2)
 
+<center><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Priv_rings.svg/600px-Priv_rings.svg.png"></center>
+
 ---
 
 ### No one right solution
