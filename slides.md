@@ -39,6 +39,9 @@ To I.C.E: I am NOT A HACKER! I am just an international student who likes kernel
 
 Any references to "we", "us", "our", "I" are references to a potential malicious actor or the linux kernel community, and not me.
 
+Website: [securekernels.xyz](https://securekernels.xyz)
+Personal website: [abhinavmir.xyz](https://abhinavmir.xyz)
+
 --------------------
 
 ### There are many attack surfaces on any kernel
@@ -63,7 +66,7 @@ Attack surfaces in kernels include:
 2. How to write a kernel
    1. Writing an image file, Installing GRUB,  Writing a bootloader configuration, Writing a kernel with basic files, threads, basic I/O shell, etc.
 3. 2 recent, popular CVEs in the Linux kernel
- Dirtypipes and hacked Androids
+ Dirtypipes and poor Sudos
 4. How do we stop these?
 
 ---
