@@ -63,7 +63,7 @@ Attack surfaces in kernels include:
 2. How to write a kernel
    1. Writing an image file, Installing GRUB,  Writing a bootloader configuration, Writing a kernel with basic files, threads, basic I/O shell, etc.
 3. 2 recent, popular CVEs in the Linux kernel
-  Spectre and Dirtypipe
+ Dirtypipes and hacked Androids
 4. How do we stop these?
 
 ---
@@ -300,35 +300,6 @@ There are other ways to learn how OSes work -
 
 etc.
 
----
-
-### Revisting Spectre variant 2
-
-- Variant 2 (Branch Target Injection or CVE-2017-5715): This variant involves poisoning the branch predictor, a component of the CPU that guesses which way a branch (e.g., an if statement) will go before it is known for sure. By manipulating the predictor, an attacker can make the CPU speculatively execute instructions at an attacker-controlled address, potentially leaking sensitive data through side effects similar to Variant 1.
-
-- Mitigation: Solutions include processor microcode updates to control speculative execution more tightly (IBRS - Indirect Branch Restricted Speculation) and software-based mitigations like "retpoline" that avoid speculative execution through indirect branch predictions. (Let's talk about this now)
-- Problems with the mitigation strategy
-
-First, they add overheads. 
-
-It slows down the system by preventing indirect branch predictions from being shared between threads on the same core in hyperthreaded (SMT) processors. This isolation means that each thread must wait for actual branch directions to be resolved rather than benefiting from predictions made based on past executions. This lack of prediction increases the number of CPU cycles needed to complete tasks, reducing overall performance.
-
----
-
-"Yes, Intel calls it "STIBP" and tries to make it out to be about the indirect branch predictor being per-SMT thread.
-But the reason it is unacceptable is apparently because in reality it just disables indirect branch prediction entirely. So yes, *technically* it's true that that limits indirect branch prediction to just a single SMT core, but in reality it is just a "go really slow" mode."
-
-<center><img src="https://banner2.cleanpng.com/20180526/gba/kisspng-linus-torvalds-linux-kernel-gnu-linux-history-of-l-5b09d3f2ae4578.3916557915273707387138.jpg" width="400">
-A polite Linus</center>
-
-
----
-
-### Did the mitigations work?
-
-There is a fairly recent exploit (on a kernel newer than mine) - specifically on one (unnamed) major cloud provider. But the scope is massive enough for us that rewriting a mainline stable kernel version to tackle this in a performant efficient way isn't feasbile. A lot of people still use STIPB. 
-
-Possible modern vectors: [https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx](https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx)
 
 ---
 
@@ -385,7 +356,54 @@ We set offset to 4, basically after the first `root` entry.
 
 Construct the payload using `openssl passwd -1 -salt name`, which comes out as `$1$name$e2....m01`. 
 
+We then make a bunch of checks - make sure everything looks good.
+
+Now, we prepare a pipe by inserting it completely with data thus forcing the can_merge flag to be set, and then we flush it but keep the flags.
+
+Now, we open `/etc/passwd` in `READ_ONLY` mode, and then we call `splice()` to move the data from the pipe to the file.
+
+Since [copy_page_to_iter_pipe()](https://elixir.bootlin.com/linux/v5.9/source/lib/iov_iter.c#L369) doesn't initalialize the `PIPE_BUF_FLAG_CAN_MERGE` flag, we can write to the file.
+
 ```
+ssize_t splice(int fd_in, off_t *_Nullable off_in, int fd_out, off_t *_Nullable off_out, size_t len, unsigned int flags);
+```
+
+Finally, we restore the password file to its original state, gain access into shell rather discreetly, and go on hacking :).
+
+---
+
+```
+static size_t copy_page_to_iter_pipe(struct page *page, size_t offset, size_t bytes,
+			 struct iov_iter *i)
+{
+	struct pipe_inode_info *pipe = i->pipe;
+	struct pipe_buffer *buf;
+......
+	buf->ops = &page_cache_pipe_buf_ops;
+	get_page(page);
+	buf->page = page;
+	buf->offset = offset;
+	buf->len = bytes;
+  // Missing PIPE_BUF_FLAG_CAN_MERGE initialization flag? Carries over from the pipe.
+
+	pipe->head = i_head + 1;
+	i->iov_offset = offset + bytes;
+	i->head = i_head;
+out:
+	i->count -= bytes;
+	return bytes;
+}
+```
+
+---
+
+### Hacking Androids
+
+# This is pretty similar, we just want to escape the application sandbox.
+
+What if we can do this with the GPU?
+
+**Looking into the Adeno GPU**
 
 ---
 
@@ -415,3 +433,33 @@ Construct the payload using `openssl passwd -1 -salt name`, which comes out as `
 3. https://lwn.net/Articles/604287/
 4. https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/?id=f6dd975583bd8ce088400648fd9819e4691c8958
 5. 
+
+---
+
+### Revisting Spectre variant 2
+
+- Variant 2 (Branch Target Injection or CVE-2017-5715): This variant involves poisoning the branch predictor, a component of the CPU that guesses which way a branch (e.g., an if statement) will go before it is known for sure. By manipulating the predictor, an attacker can make the CPU speculatively execute instructions at an attacker-controlled address, potentially leaking sensitive data through side effects similar to Variant 1.
+
+- Mitigation: Solutions include processor microcode updates to control speculative execution more tightly (IBRS - Indirect Branch Restricted Speculation) and software-based mitigations like "retpoline" that avoid speculative execution through indirect branch predictions. (Let's talk about this now)
+- Problems with the mitigation strategy
+
+First, they add overheads. 
+
+It slows down the system by preventing indirect branch predictions from being shared between threads on the same core in hyperthreaded (SMT) processors. This isolation means that each thread must wait for actual branch directions to be resolved rather than benefiting from predictions made based on past executions. This lack of prediction increases the number of CPU cycles needed to complete tasks, reducing overall performance.
+
+---
+
+"Yes, Intel calls it "STIBP" and tries to make it out to be about the indirect branch predictor being per-SMT thread.
+But the reason it is unacceptable is apparently because in reality it just disables indirect branch prediction entirely. So yes, *technically* it's true that that limits indirect branch prediction to just a single SMT core, but in reality it is just a "go really slow" mode."
+
+<center><img src="https://banner2.cleanpng.com/20180526/gba/kisspng-linus-torvalds-linux-kernel-gnu-linux-history-of-l-5b09d3f2ae4578.3916557915273707387138.jpg" width="400">
+A polite Linus</center>
+
+
+---
+
+### Did the mitigations work?
+
+There is a fairly recent exploit (on a kernel newer than mine) - specifically on one (unnamed) major cloud provider. But the scope is massive enough for us that rewriting a mainline stable kernel version to tackle this in a performant efficient way isn't feasbile. A lot of people still use STIPB. 
+
+Possible modern vectors: [https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx](https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx)
