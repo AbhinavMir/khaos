@@ -34,6 +34,9 @@ Lessons in building an OS
 &rarr; MS CompSci @ BU <br>
 &rarr; Dev @ a few places <br>
 &rarr; Open Source @ a few repos, eg. Zephyr
+
+To I.C.E: I am NOT A HACKER! I am just an international student who likes kernels.
+
 --------------------
 
 ### There are many attack surfaces on any kernel
@@ -175,16 +178,50 @@ This function in turn opens up `vfs_read()`, which is a virtual file system read
 
 ### Dissecting the syscall()
 
-![](https://www.usenix.org/legacy/publications/library/proceedings/usenix01/full_papers/kroeger/kroeger_html/linux.caches.gif)
+<center><img src="https://www.usenix.org/legacy/publications/library/proceedings/usenix01/full_papers/kroeger/kroeger_html/linux.caches.gif" width="400"></center>
 
-From `vfs_read`
+`vfs_read` is a part of the virutal file system abstraction that provides uniform access to different file systems. It is a part of the kernel that manages file I/O operations, including reading and writing data to and from files. Eventually, it leads to reading from the disk using assembly at some point. 
 
+---
+
+### Visualizing a Syscall
+
+<center><img src="https://www.chromium.org/nativeclient/reference/anatomy-of-a-sys/NaClSyscallFlowchart2.png" width="400">
+Ref. Chromium.org</center>
+
+---
+
+### Revisting Spectre variant 2
+
+- Variant 2 (Branch Target Injection or CVE-2017-5715): This variant involves poisoning the branch predictor, a component of the CPU that guesses which way a branch (e.g., an if statement) will go before it is known for sure. By manipulating the predictor, an attacker can make the CPU speculatively execute instructions at an attacker-controlled address, potentially leaking sensitive data through side effects similar to Variant 1.
+
+- Mitigation: Solutions include processor microcode updates to control speculative execution more tightly (IBRS - Indirect Branch Restricted Speculation) and software-based mitigations like "retpoline" that avoid speculative execution through indirect branch predictions. (Let's talk about this now)
+- Problems with the mitigation strategy
+
+First, they add overheads. 
+
+It slows down the system by preventing indirect branch predictions from being shared between threads on the same core in hyperthreaded (SMT) processors. This isolation means that each thread must wait for actual branch directions to be resolved rather than benefiting from predictions made based on past executions. This lack of prediction increases the number of CPU cycles needed to complete tasks, reducing overall performance.
+
+---
+
+"Yes, Intel calls it "STIBP" and tries to make it out to be about the indirect branch predictor being per-SMT thread.
+But the reason it is unacceptable is apparently because in reality it just disables indirect branch prediction entirely. So yes, *technically* it's true that that limits indirect branch prediction to just a single SMT core, but in reality it is just a "go really slow" mode."
+
+<center><img src="https://banner2.cleanpng.com/20180526/gba/kisspng-linus-torvalds-linux-kernel-gnu-linux-history-of-l-5b09d3f2ae4578.3916557915273707387138.jpg" width="400">
+A polite Linus</center>
 
 
 ---
 
-<center><img src="https://www.chromium.org/nativeclient/reference/anatomy-of-a-sys/NaClSyscallFlowchart2.png" width="400">
-Ref. Chromium.org</center>
+### Did the mitigations work?
+
+There is a fairly recent exploit (on a kernel newer than mine) - specifically on one (unnamed) major cloud provider. But the scope is massive enough for us that rewriting a mainline stable kernel version to tackle this in a performant efficient way isn't feasbile. A lot of people still use STIPB.
+
+- The attack involves two processes: one acting as the attacker and the other as the victim.
+- The attacker process speculatively poisons an indirect call to redirect it to a target address.
+- The victim process tries to mitigate the attack by either calling `PRCTL` or writing to the MSR directly.
+- Despite attempts to enable Spectre v2 mitigations (such as IBRS or STIBP), a bug in the Linux Kernel (prior to version 6.3) leaves userspace threads vulnerable to cross-thread branch target injection on systems with plain IBRS enabled.
+- The vulnerability stems from an optimization that disables STIBP if mitigation is set to IBRS or eIBRS, which does not protect against SMT attacks on userspace as effectively as eIBRS does.
 
 ---
 
