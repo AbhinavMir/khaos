@@ -372,6 +372,9 @@ Finally, we restore the password file to its original state, gain access into sh
 
 ---
 
+
+---
+
 ```
 static size_t copy_page_to_iter_pipe(struct page *page, size_t offset, size_t bytes,
 			 struct iov_iter *i)
@@ -394,6 +397,113 @@ out:
 	return bytes;
 }
 ```
+
+
+---
+
+### Attacks don't have to be so serious
+# They definitely don't have to be so embedded
+
+Discussing CVE-2019-14287
+
+---
+
+"When sudo is configured to allow a user to run commands as an arbitrary user via the ALL keyword in a Runas specification, it is possible to run commands as root by specifying the user ID -1 or 4294967295."
+- [sudo.ws](https://www.sudo.ws/security/advisories/minus_1_uid/)
+
+---
+
+```
+sudo -V # If <1.8.28, you're vulnerable
+```
+
+
+```
+visudo
+```
+
+```
+# User privilege specification
+temp ALL=(ALL:ALL) ALL
+```
+
+So now when you do `su - temp`, you can run `sudo -u#-1 /bin/bash` and you're in root. But, if you don't want to give temp root access, what you do is
+---
+
+```
+# User privilege specification
+temp ALL=(ALL, !root) ALL
+```
+
+Technically, this shouldn't allow `temp` to run `root` commands, but with the vulnerability, you can still run `sudo -u#-1 /bin/bash` and you're in root. You can also run `sudo -u#4294967295 /bin/bash` and you're in root.
+
+I tried to reflog through `sudo`'s source code, but 1) it's on mercurial, and 2) each release has a million commits, so I wasn't able to find out what they fixed, but a safe bet is that they just disallowed negative numbers and going over the max int ($2^32$ − 1 = 4294967295).
+
+
+
+---
+
+# How to solve this?
+### General, usualy advice
+1. Don't increase your attack surface - eg. snaps
+  - In general, avoid Ubuntu, they hire based on GPA, but somehow the OS comes out looking good
+2. Keep your kernel and packages up to date
+3. Do not run untrusted code
+4. etc.
+
+---
+
+### Kernel specific advice
+1. I am not the right person for this but there are many tools
+2. Use `kconfig` to offload secure, but slow modules.
+3. Use CPA-Checker type kernel verification tools.
+4. Use eBPFS to play around with features without compromising security.
+
+
+---
+
+### References
+
+1. https://pwn.college/system-security/kernel-security
+2. https://lwn.net/Articles/604287/
+3. https://lwn.net/Articles/604287/
+4. https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/?id=f6dd975583bd8ce088400648fd9819e4691c8958
+
+
+---
+
+Potential Follow-ups
+1. Revisiting Spectre variant 2
+2. Adventures in the Android GPU land
+
+---
+### Revisting Spectre variant 2
+
+- Variant 2 (Branch Target Injection or CVE-2017-5715): This variant involves poisoning the branch predictor, a component of the CPU that guesses which way a branch (e.g., an if statement) will go before it is known for sure. By manipulating the predictor, an attacker can make the CPU speculatively execute instructions at an attacker-controlled address, potentially leaking sensitive data through side effects similar to Variant 1.
+
+- Mitigation: Solutions include processor microcode updates to control speculative execution more tightly (IBRS - Indirect Branch Restricted Speculation) and software-based mitigations like "retpoline" that avoid speculative execution through indirect branch predictions. (Let's talk about this now)
+- Problems with the mitigation strategy
+
+First, they add overheads. 
+
+It slows down the system by preventing indirect branch predictions from being shared between threads on the same core in hyperthreaded (SMT) processors. This isolation means that each thread must wait for actual branch directions to be resolved rather than benefiting from predictions made based on past executions. This lack of prediction increases the number of CPU cycles needed to complete tasks, reducing overall performance.
+
+---
+
+"Yes, Intel calls it "STIBP" and tries to make it out to be about the indirect branch predictor being per-SMT thread.
+But the reason it is unacceptable is apparently because in reality it just disables indirect branch prediction entirely. So yes, *technically* it's true that that limits indirect branch prediction to just a single SMT core, but in reality it is just a "go really slow" mode."
+
+<center><img src="https://banner2.cleanpng.com/20180526/gba/kisspng-linus-torvalds-linux-kernel-gnu-linux-history-of-l-5b09d3f2ae4578.3916557915273707387138.jpg" width="400">
+A polite Linus</center>
+
+
+---
+
+### Did the mitigations work?
+
+There is a fairly recent exploit (on a kernel newer than mine) - specifically on one (unnamed) major cloud provider. But the scope is massive enough for us that rewriting a mainline stable kernel version to tackle this in a performant efficient way isn't feasbile. A lot of people still use STIPB. 
+
+Possible modern vectors: [https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx](https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx)
 
 ---
 
@@ -425,63 +535,4 @@ Normally, the GPU is abstracted via the OpenGL/Vulkan type libraries, which impl
 ---
 For the Adreno, the `dev/kgsl-3d0` device file is mounted and used to implement high-level graphics APIs, but it is also directly accessible within the untrusted app sandbox, because the device has a global RW set in its file permissions. 
 
-Applications in Android often end up using shared mapping to load GUI elements, and this is where the problem lies.
-
----
-
-# How to solve this?
-### General, usualy advice
-1. Don't increase your attack surface - eg. snaps
-  - In general, avoid Ubuntu, they hire based on GPA, but somehow the OS comes out looking good
-2. Keep your kernel and packages up to date
-3. Do not run untrusted code
-4. etc.
-
----
-
-### Kernel specific advice
-1. I am not the right person for this but there are many tools
-2. Use `kconfig` to offload secure, but slow modules.
-3. Use CPA-Checker type kernel verification tools.
-4. Use eBPFS to play around with features without compromising security.
-
-
----
-
-### References
-
-1. https://pwn.college/system-security/kernel-security
-2. https://lwn.net/Articles/604287/
-3. https://lwn.net/Articles/604287/
-4. https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/?id=f6dd975583bd8ce088400648fd9819e4691c8958
-5. 
-
----
-
-### Revisting Spectre variant 2
-
-- Variant 2 (Branch Target Injection or CVE-2017-5715): This variant involves poisoning the branch predictor, a component of the CPU that guesses which way a branch (e.g., an if statement) will go before it is known for sure. By manipulating the predictor, an attacker can make the CPU speculatively execute instructions at an attacker-controlled address, potentially leaking sensitive data through side effects similar to Variant 1.
-
-- Mitigation: Solutions include processor microcode updates to control speculative execution more tightly (IBRS - Indirect Branch Restricted Speculation) and software-based mitigations like "retpoline" that avoid speculative execution through indirect branch predictions. (Let's talk about this now)
-- Problems with the mitigation strategy
-
-First, they add overheads. 
-
-It slows down the system by preventing indirect branch predictions from being shared between threads on the same core in hyperthreaded (SMT) processors. This isolation means that each thread must wait for actual branch directions to be resolved rather than benefiting from predictions made based on past executions. This lack of prediction increases the number of CPU cycles needed to complete tasks, reducing overall performance.
-
----
-
-"Yes, Intel calls it "STIBP" and tries to make it out to be about the indirect branch predictor being per-SMT thread.
-But the reason it is unacceptable is apparently because in reality it just disables indirect branch prediction entirely. So yes, *technically* it's true that that limits indirect branch prediction to just a single SMT core, but in reality it is just a "go really slow" mode."
-
-<center><img src="https://banner2.cleanpng.com/20180526/gba/kisspng-linus-torvalds-linux-kernel-gnu-linux-history-of-l-5b09d3f2ae4578.3916557915273707387138.jpg" width="400">
-A polite Linus</center>
-
-
----
-
-### Did the mitigations work?
-
-There is a fairly recent exploit (on a kernel newer than mine) - specifically on one (unnamed) major cloud provider. But the scope is massive enough for us that rewriting a mainline stable kernel version to tackle this in a performant efficient way isn't feasbile. A lot of people still use STIPB. 
-
-Possible modern vectors: [https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx](https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx)
+Applications in Android often end up using shared mapping to load GUI elements, and this is where the problem lies. This points to the idea that there are some physical memory pages shared between userland and GPUland. 
