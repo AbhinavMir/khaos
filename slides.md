@@ -325,11 +325,11 @@ A polite Linus</center>
 
 There is a fairly recent exploit (on a kernel newer than mine) - specifically on one (unnamed) major cloud provider. But the scope is massive enough for us that rewriting a mainline stable kernel version to tackle this in a performant efficient way isn't feasbile. A lot of people still use STIPB. 
 
-- The attack involves two processes: one acting as the attacker and the other as the victim.
-- The attacker process speculatively poisons an indirect call to redirect it to a target address.
-- The victim process tries to mitigate the attack by either calling `PRCTL` or writing to the MSR directly.
-- Despite attempts to enable Spectre v2 mitigations (such as IBRS or STIBP), a bug in the Linux Kernel (prior to version 6.3) leaves userspace threads vulnerable to cross-thread branch target injection on systems with plain IBRS enabled.
-- The vulnerability stems from an optimization that disables STIBP if mitigation is set to IBRS or eIBRS, which does not protect against SMT attacks on userspace as effectively as eIBRS does.
+Possible modern vectors: [https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx](https://github.com/google/security-research/security/advisories/GHSA-mj4w-6495-6crx)
+
+---
+
+# DirtyPipe
 
 ---
 
