@@ -57,7 +57,7 @@ Attack surfaces in kernels include:
 ### Structure of the talk
 
 1. Basics of a kernel
-   1.  Kernels vs OS, Privilege separation, Types of kernels, XNU vs Linux, Boot process, Switching between rings, How a Syscall works, How does a device driver work, Why can buffer overflows happen
+   1.  Kernels vs OS, Privilege separation, Types of kernels, XNU vs Linux, Boot process, Switching between rings, How a Syscall works (an an example to how to dive into reading linux), How does a kernel module, Why can buffer overflows happen
 2. How to write a kernel
    1. Writing an image file, Installing GRUB,  Writing a bootloader configuration, Writing a kernel with basic files, threads, basic I/O shell, etc.
 3. 3 recent CVEs in the Linux kernel
@@ -153,7 +153,7 @@ Eg. `read()`
 
 
 ```
-SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
+SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count) // 3 for 3 arguments
 {
 	struct fd f = fdget_pos(fd); // get file descriptor
 	ssize_t ret = -EBADF; // default error code
