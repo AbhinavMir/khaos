@@ -407,6 +407,28 @@ What if we can do this with the GPU?
 
 ---
 
+- There are many ways to attack an Android: Core linux bugs, Chipset specific attacks (eg. Snapdragon SoC attacks), Vendor specific attacks (eg. Samsung Kernel Driver attacks), Device specific attacks (eg. Pixel 4 face unlock attacks), etc.
+
+- Sandbox escaping via attacking the GPU seems lucrative, since there are only a few types of GPU in the wild: QC Adreno and ARM Mali being the popular ones. 
+
+- In a commit from Jordan Crouse, the "scratch" global buffer uses a ranndom GPU address. 
+
+- This is odd because this isn't ASLR since this isn't a kernel virtual address, this is a GPU virtual address.
+
+---
+
+Normally, the GPU is abstracted via the OpenGL/Vulkan type libraries, which implement the graphics stuff you're used to seeing, but they also operate on a low level similar to what you would expect from a driver. 
+
+
+<center><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgBJXoWqY5eOUtyGNhv6P5HstX5jWG6Lu1o1_4JfUpjfYx7oZ8q8XqxJlQRn1ZGx6UgPsyz7jlnEBVDZ2fck1wuI1QGenrbqyO6IPJZCqtFbI5Lv_8oeCeNLhuOmsdjJIk9s8Y2klnitZHRYeQrdHgcVx1kX_R6q_2AZiJ-y58jDOThUe-lV3ocSHLq/s577/image2%2810%29.png"></center>
+
+---
+For the Adreno, the `dev/kgsl-3d0` device file is mounted and used to implement high-level graphics APIs, but it is also directly accessible within the untrusted app sandbox, because the device has a global RW set in its file permissions. 
+
+Applications in Android often end up using shared mapping to load GUI elements, and this is where the problem lies.
+
+---
+
 # How to solve this?
 ### General, usualy advice
 1. Don't increase your attack surface - eg. snaps
