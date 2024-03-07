@@ -183,8 +183,8 @@ This function in turn opens up `vfs_read()`, which is a virtual file system read
 
 ### Visualizing a Syscall
 
-<center><img src="https://www.chromium.org/nativeclient/reference/anatomy-of-a-sys/NaClSyscallFlowchart2.png" width="400">
-Ref. Chromium.org</center>
+Depending on how you use [KConfig](https://elixir.bootlin.com/linux/v3.14/source/kernel/trace/Kconfig). You can visualize the syscall using `strace` or `ltrace` to see what system calls are being made. 
+
 
 ---
 
