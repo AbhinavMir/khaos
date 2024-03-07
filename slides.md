@@ -54,14 +54,6 @@ Attack surfaces in kernels include:
    
 ---
 
-### We will focus on just 3 of them
-
-&rarr; Syscalls
-<br>&rarr; Network Protocols
-<br>  &rarr; Buffer Overflow
-
----
-
 ### Structure of the talk
 
 1. Basics of a kernel
@@ -133,6 +125,9 @@ Components of a microkernel-based system include:
 # from user land to kernel land, either 
 # directly or indirectly.
 
+# And the mitigation tactics
+# Are pretty similar to what you would
+# do in a defensive CTF team
 --- 
 
 ### A normal boot process for a kernel
