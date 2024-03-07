@@ -189,15 +189,113 @@ Note: A file descriptor is an integer that uniquely identifies an open file in a
 
 [here](https://stackoverflow.com/a/52457592) is my favourite write-up on it.
 
-```mermaid
-graph TD;
-    read-->ksys_read;
-    ksys_read-->validate_parameters{"Validates Parameters"};
-    validate_parameters-->vfs_read;
-    vfs_read-->file_operations;
-    file_operations-->do_read;
-    do_read-->return_data{"Returns Data"};
+eg. Reading a file on ext4
+
+1. Syscall defined in `read_write.c` calls `ksys_read()` which in turn calls `vfs_read()` if all goes well. It then tries to access the `read()` function in the file_operations struct, which depending on the file strucutre is a pointer eventually to the `do_x_read()` type function via the inode. For us it is `ext4_file_read_iter` defined here.
+
 ```
+const struct file_operations ext4_file_operations = {
+	.llseek		= ext4_llseek,
+	.read_iter	= ext4_file_read_iter,
+	.write_iter	= ext4_file_write_iter,
+....
+```
+
+---
+
+A couple more jumps in, we reach `filemap_read` which essentially does the following.
+
+  1. **Validation**: Checks if read position exceeds file size or if no data is requested.
+  2. **Folio Management**: Uses a `folio_batch` for handling pages (folios) from the page cache.
+  3. **Looping Read**:
+     - Fetches pages as needed.
+     - Copies data from folios to user buffer (`copy_folio_to_iter`).
+     - Handles page cache coherency and marks folios accessed.
+  4. **Updates**:
+     - Updates file access time.
+     - Updates read position and last accessed position.
+
+- **Return Values**:
+  - Returns the total number of bytes read into the user buffer.
+  - Returns an error code (`-EFAULT`, etc.) if the read operation fails at any point.
+
+---
+
+## There are incredible number of validations and abstractions,
+## that are in place to ensure that the kernel is secure.
+## But malicious actors slip right through them.
+
+---
+
+# So how do You build a minimal kernel?
+
+1. **Create Disk Image:**
+```bash
+dd if=/dev/zero of=disk.img bs=512 count=60480
+```
+
+Do a bunch of configurations you can find [here](https://git.sr.ht/~abhinavmir/OS/tree/main/item/discos/cd.sh).
+
+2. **Install GRUB to `sampleOS`:**
+```bash
+mkdir /mnt/sampleOS && sudo mount -o loop disk.img /mnt/sampleOS
+sudo grub-install --boot-directory=/mnt/sampleOS/boot /dev/loop0
+sudo umount /mnt/sampleOS
+```
+
+3. **Write Bootloader Configuration:**
+- First, create a directory for GRUB config if it doesn't exist:
+```bash
+sudo mkdir -p /mnt/sampleOS/boot/grub
+```
+
+---
+
+- Then, write a simple GRUB configuration to `/mnt/sampleOS/boot/grub/grub.cfg`:
+```bash
+menuentry "Experimental OS" {
+    set root=(hd0)
+    linux /boot/vmlinuz root=/dev/sda1 ro quiet
+    initrd /boot/initrd.img
+}
+```
+Then write your minimal kernel that starts by printing `hello world` to the screen.
+
+```
+volatile char *video_memory = (volatile char*)0xB8000; // Video memory starts here.
+
+void print(const char *str) {
+    while (*str != 0) {
+        *video_memory++ = *str++; // Character byte
+        *video_memory++ = 0x07;   // Attribute byte (light grey on black)
+    }
+}
+
+void main() {
+    print("Hello, World!");
+    while(1) {} // Loop indefinitely to prevent the kernel from exiting.
+}
+```
+--- 
+
+Compile it, say for i686-elf, and then run it on the VM.
+
+`i686-elf-gcc -ffreestanding -c kernel.c -o kernel.o && i686-elf-ld -o kernel.bin -Ttext 0x1000 kernel.o --oformat binary`
+
+And now you can run it with QEMU.
+
+`qemu-system-i386 -kernel kernel.bin`
+
+It's been 2 months since I wrote my first kernel, and I don't really remember the exact steps, so you'll need to reference the [OSDev Wiki](https://wiki.osdev.org/Main_Page) and other resources to get it all right, but these are the general steps.
+
+There are other ways to learn how OSes work -
+1. Build Linux kernel from scratch (I have an instructional [here](https://abhinavmir.xyz/blog/linux-kernel/))
+2. Write a basic kernel module, I'll be posting instructionals on that [here](https://xernel.site/posts/2-first-kernel-module/).
+3. Write simple bootloaders
+4. Play around with RTOSes on cheap ESP32s
+5. Build a small 8-bit CPU on LogiSim
+
+etc.
 
 ---
 
