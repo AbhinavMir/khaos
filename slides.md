@@ -332,6 +332,39 @@ Possible modern vectors: [https://github.com/google/security-research/security/a
 
 # DirtyPipe
 
+&rarr; RAM is main memory, and is volatile, meaning it loses data when the power is turned off. <br>
+&rarr; Hard drive is secondary memory, and is non-volatile, meaning it retains data when the power is turned off. <br>
+&rarr; Virtual Memory is a memory management technique that provides an "idealized abstraction of the <br> storage resources that are actually available on a given machine" which "creates the illusion to users of a very large (main) memory." <br>
+&rarr; A Translation Lookaside Buffer (TLB) is a cache used by a computer's CPU to reduce the time taken to access memory locations in the virtual memory. It stores recent translations of virtual memory addresses to physical memory addresses, improving the speed of memory access in an operating system. <br>
+&rarr; A page is a fixed-length contiguous block of virtual memory, described by a single entry in the page table. It is the smallest unit of data for memory management in a virtual memory system.  <br>
+&rarr; A dirty page is a page in memory that has been modified since it was last written to disk. It is marked as "dirty" to indicate that it needs to be written back to disk to maintain consistency between memory and storage. <br>
+&rarr; You have this in databases, and other complex systems, but also just not saving your file but writing to it for example, is a primitive form of this.
+
+--- 
+
+### Understanding Pipes
+
+`ls | grep "foo"` is a pipe. It takes the output of `ls` and feeds it into `grep`. There are named and unnamed pipes, we have used an unnamed pipe here - an anonymous pipe.
+
+---
+
+# How to solve this?
+### General, usualy advice
+1. Don't increase your attack surface - eg. snaps
+  - In general, avoid Ubuntu, they hire based on GPA, but somehow the OS comes out looking good
+2. Keep your kernel and packages up to date
+3. Do not run untrusted code
+4. etc.
+
+---
+
+### Kernel specific advice
+1. I am not the right person for this but there are many tools
+2. Use `kconfig` to offload secure, but slow modules.
+3. Use CPA-Checker type kernel verification tools.
+4. Use eBPFS to play around with features without compromising security.
+
+
 ---
 
 ### References
