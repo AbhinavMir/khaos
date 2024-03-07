@@ -37,6 +37,8 @@ Lessons in building an OS
 
 To I.C.E: I am NOT A HACKER! I am just an international student who likes kernels.
 
+Any references to "we", "us", "our", "I" are references to a potential malicious actor or the linux kernel community, and not me.
+
 --------------------
 
 ### There are many attack surfaces on any kernel
@@ -344,7 +346,46 @@ Possible modern vectors: [https://github.com/google/security-research/security/a
 
 ### Understanding Pipes
 
-`ls | grep "foo"` is a pipe. It takes the output of `ls` and feeds it into `grep`. There are named and unnamed pipes, we have used an unnamed pipe here - an anonymous pipe.
+`ls | grep "foo"` is a pipe. It takes the output of `ls` and feeds it into `grep`. There are named and unnamed pipes, we have used an unnamed pipe here - an anonymous pipe. We pass the input of the first process `ls` into the second process `grep` and look through the results of the first process via `grep`.
+
+In commit [f6..58](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/?id=f6dd975583bd8ce088400648fd9819e4691c8958), the aim was to simplify buffer operation management. So we removed `anon_pipe_buf_nomerge_ops` and `packet_pipe_buf_ops` and `pipe_buf_mark_unmergeable()`, but we added `PIPE_BUF_FLAG_CAN_MERGE`, which was used to indicate whether new data written to a pipe can be merged with an existing buffer. We modified other functions to now work with this, but this caused a problem.
+
+---
+
+### The problem 
+
+`splice()` is one of the syscalls (we studied this earlier) which moves data between a fildes and a pipe. It doesn't touch user land, and is generally faster. 
+
+Suppose you have a file named `source_file.txt` and you want to send its contents over a network socket. This is how you'd do it in C
+
+```
+file_fd = filedes of source_file.txt
+socket_fd = filedes of the socket
+
+
+int pipe_fds[2];
+pipe(pipe_fds); // Create a pipe
+
+
+// Splice the file to the pipe: move data from file_fd to pipe_fds[1]
+splice(file_fd, NULL, pipe_fds[1], NULL, 1024, SPLICE_F_MOVE);
+
+
+// Splice the pipe to the socket: move data from pipe_fds[0] to socket_fd
+splice(pipe_fds[0], NULL, socket_fd, NULL, 1024, SPLICE_F_MOVE);
+```
+---
+
+Editing `/etc/passwd` is a common example of a dirty pipe. 
+
+The simplest hack using Dirty Pipe is placing our malicious password hash in `/etc/passwd`.
+
+
+We set offset to 4, basically after the first `root` entry.
+
+Construct the payload as 
+
+```
 
 ---
 
@@ -372,3 +413,5 @@ Possible modern vectors: [https://github.com/google/security-research/security/a
 1. https://pwn.college/system-security/kernel-security
 2. https://lwn.net/Articles/604287/
 3. https://lwn.net/Articles/604287/
+4. https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/?id=f6dd975583bd8ce088400648fd9819e4691c8958
+5. 
