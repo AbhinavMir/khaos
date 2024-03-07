@@ -60,9 +60,10 @@ Attack surfaces in kernels include:
    1.  Kernels vs OS, Privilege separation, Types of kernels, XNU vs Linux, Boot process, Switching between rings, How a Syscall works (an an example to how to dive into reading linux), How does a kernel module, Why can buffer overflows happen
 2. How to write a kernel
    1. Writing an image file, Installing GRUB,  Writing a bootloader configuration, Writing a kernel with basic files, threads, basic I/O shell, etc.
-3. 3 recent CVEs in the Linux kernel
-   1. sdv
-4. How do we fix this?
+3. 2 recent, popular CVEs in the Linux kernel
+  Spectre and Dirtypipe
+4. How do we stop these?
+
 ---
 
 # Kernel vs. OS
