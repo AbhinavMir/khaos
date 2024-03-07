@@ -185,6 +185,19 @@ This function in turn opens up `vfs_read()`, which is a virtual file system read
 
 Depending on how you use [KConfig](https://elixir.bootlin.com/linux/v3.14/source/kernel/trace/Kconfig). You can visualize the syscall using `strace` or `ltrace` to see what system calls are being made. 
 
+Note: A file descriptor is an integer that uniquely identifies an open file in a computer's operating system. It is used to access the file for reading, writing, or other operations.
+
+[here](https://stackoverflow.com/a/52457592) is my favourite write-up on it.
+
+```mermaid
+graph TD;
+    read-->ksys_read;
+    ksys_read-->validate_parameters{"Validates Parameters"};
+    validate_parameters-->vfs_read;
+    vfs_read-->file_operations;
+    file_operations-->do_read;
+    do_read-->return_data{"Returns Data"};
+```
 
 ---
 
@@ -212,7 +225,7 @@ A polite Linus</center>
 
 ### Did the mitigations work?
 
-There is a fairly recent exploit (on a kernel newer than mine) - specifically on one (unnamed) major cloud provider. But the scope is massive enough for us that rewriting a mainline stable kernel version to tackle this in a performant efficient way isn't feasbile. A lot of people still use STIPB.
+There is a fairly recent exploit (on a kernel newer than mine) - specifically on one (unnamed) major cloud provider. But the scope is massive enough for us that rewriting a mainline stable kernel version to tackle this in a performant efficient way isn't feasbile. A lot of people still use STIPB. 
 
 - The attack involves two processes: one acting as the attacker and the other as the victim.
 - The attacker process speculatively poisons an indirect call to redirect it to a target address.
