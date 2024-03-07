@@ -383,7 +383,7 @@ The simplest hack using Dirty Pipe is placing our malicious password hash in `/e
 
 We set offset to 4, basically after the first `root` entry.
 
-Construct the payload as 
+Construct the payload using `openssl passwd -1 -salt name`, which comes out as `$1$name$e2....m01`. 
 
 ```
 
